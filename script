@@ -1,0 +1,141 @@
+// 定义常量和模板字符串
+const API_KEY = "你自己的api";
+const MODEL_TYPE = "gpt-3.5-turbo";
+const TEMPERATURE = 0;
+const MAX_TOKENS = 2060;
+
+const AA_PROMPT_TEMPLATE = "请帮我撰写公司介绍资料：包括公司简介、愿景和使命等 Chinese for %s";// 公司简介
+const BB_PROMPT_TEMPLATE = "请把撰写产品宣传文案：针对公司的主要产品，撰写吸引人的广告语和画面，提高产品的知名度 in Chinese for %s";// 宣传资料
+const CC_PROMPT_TEMPLATE = "请帮我撰写市场营销计划书：制定详细的市场营销计划，包括广告渠道、促销活动、客户关系管理等 in Chinese for %s";// 营销计划书
+const DD_PROMPT_TEMPLATE = "撰写通知 in Chinese for %s";// 撰写通知
+const EE_PROMPT_TEMPLATE = "撰写公司广告词 in Chinese for %s";// 撰写公司广告词
+const FF_PROMPT_TEMPLATE = "撰写总结 in Chinese for %s";// 撰写总结
+const Translation_PROMPT_TEMPLATE = "please summarize as the conclusion in Chinese for %s";//翻译
+const Customize_PROMPT_TEMPLATE = "请用中文回答 for %s";// 自定义
+
+
+// 建立一个下拉菜单
+function onOpen() {
+ DocumentApp.getUi().createMenu("百倍速GPT")
+ .addItem("公司简介", "generateAA")
+ .addItem("宣传资料", "generateBB")
+ .addItem("营销计划书", "generateCC")
+ .addItem("撰写通知", "generateDD")
+ .addItem("撰写公司广告词", "generateEE")
+ .addItem("公司总结", "generateFF")
+ .addItem("文章配图", "generateImage")
+ .addItem("翻译成中文", "generatetranslation")
+ .addItem("自定义", "generatecustomize")
+ .addToUi();
+}
+// 生成的函数
+function generate(promptTemplate) {
+  const doc = DocumentApp.getActiveDocument();
+  const selectedText = doc.getSelection().getRangeElements()[0].getElement().asText().getText();
+  const body = doc.getBody();
+  const prompt = Utilities.formatString(promptTemplate, selectedText);
+
+  const requestBody = {
+    model: MODEL_TYPE,
+    messages: [{role: "user", content: prompt}],
+    temperature: TEMPERATURE,
+    max_tokens: MAX_TOKENS,
+  };
+
+  const requestOptions = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + API_KEY,
+    },
+    payload: JSON.stringify(requestBody),
+  };
+
+  const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", requestOptions);
+  const responseText = response.getContentText();
+  const json = JSON.parse(responseText);
+  const generatedText = json['choices'][0]['message']['content'];
+
+  body.appendParagraph(generatedText.toString());
+}
+// AA
+function generateAA() {
+  generate(AA_PROMPT_TEMPLATE);
+}
+
+// BB
+function generateBB() {
+  generate(BB_PROMPT_TEMPLATE);
+}
+
+// CC
+function generateCC() {
+  generate(CC_PROMPT_TEMPLATE);
+}
+
+// DD
+function generateDD() {
+  generate(DD_PROMPT_TEMPLATE);
+}
+
+// EE
+function generateEE() {
+  generate(EE_PROMPT_TEMPLATE);
+}
+
+
+// FF
+function generateFF() {
+  generate(FF_PROMPT_TEMPLATE);
+}
+
+// 翻译
+function generatetranslation() {
+  generate(Translation_PROMPT_TEMPLATE);
+}
+
+// 自定义
+function generatecustomize() {
+  generate(Customize_PROMPT_TEMPLATE);
+}
+
+
+// 文章配图
+function generateImage() {
+  const doc = DocumentApp.getActiveDocument();
+  const selectedText = doc.getSelection().getRangeElements()[0].getElement().asText().getText();
+  const prompt = selectedText;
+  const n = 2;
+  const size = "1024x1024";
+
+  const requestBody = {
+    prompt: prompt,
+    n: n,
+    size: size,
+  };
+
+  const requestOptions = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + API_KEY,
+    },
+    payload: JSON.stringify(requestBody),
+  };
+
+  const response = UrlFetchApp.fetch("https://api.openai.com/v1/images/generations", requestOptions);
+  const responseText = response.getContentText();
+  const json = JSON.parse(responseText);
+  const generatedImages = json['data'];
+
+  // 将生成的图像插入到文档中
+  const body = doc.getBody();
+  for (let i = 0; i < generatedImages.length; i++) {
+    const imageUrl = generatedImages[i]['url'];
+    const imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
+    const image = body.appendImage(imageBlob);
+    image.setHeight(200);
+    image.setWidth(200);
+  }
+}
+
